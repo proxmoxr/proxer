@@ -4,7 +4,8 @@
 *.dll
 *.so
 *.dylib
-pxc
+/pxc
+pxc-*
 dist/
 build/
 
