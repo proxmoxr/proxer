@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/brynnjknight/proxer/internal/models"
 	"gopkg.in/yaml.v3"
+
+	"github.com/brynnjknight/proxer/internal/models"
 )
 
 // LoadLXCfile loads and parses an LXCfile.yml configuration
@@ -132,18 +133,18 @@ func ValidateConfigExists(filename string) error {
 		// Provide helpful suggestions
 		dir := filepath.Dir(filename)
 		base := filepath.Base(filename)
-		
+
 		// Look for similar files
 		files, _ := os.ReadDir(dir)
 		var suggestions []string
-		
+
 		for _, file := range files {
 			if !file.IsDir() {
 				name := file.Name()
 				if strings.Contains(strings.ToLower(name), "lxc") ||
-				   strings.Contains(strings.ToLower(name), "proxer") ||
-				   strings.HasSuffix(name, ".yml") ||
-				   strings.HasSuffix(name, ".yaml") {
+					strings.Contains(strings.ToLower(name), "proxer") ||
+					strings.HasSuffix(name, ".yml") ||
+					strings.HasSuffix(name, ".yaml") {
 					suggestions = append(suggestions, name)
 				}
 			}
@@ -151,7 +152,7 @@ func ValidateConfigExists(filename string) error {
 
 		errMsg := fmt.Sprintf("configuration file not found: %s", filename)
 		if len(suggestions) > 0 {
-			errMsg += fmt.Sprintf("\n\nDid you mean one of these files?\n")
+			errMsg += "\n\nDid you mean one of these files?\n"
 			for _, suggestion := range suggestions {
 				errMsg += fmt.Sprintf("  %s\n", filepath.Join(dir, suggestion))
 			}
@@ -159,7 +160,7 @@ func ValidateConfigExists(filename string) error {
 			errMsg += fmt.Sprintf("\n\nTo get started, create an %s file or run 'pxc init'", base)
 		}
 
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 
 	return nil
@@ -169,7 +170,7 @@ func ValidateConfigExists(filename string) error {
 func GetDefaultLXCfile() string {
 	candidates := []string{
 		"LXCfile.yml",
-		"LXCfile.yaml", 
+		"LXCfile.yaml",
 		"lxcfile.yml",
 		"lxcfile.yaml",
 	}
@@ -188,7 +189,7 @@ func GetDefaultStackfile() string {
 	candidates := []string{
 		"lxc-stack.yml",
 		"lxc-stack.yaml",
-		"stack.yml", 
+		"stack.yml",
 		"stack.yaml",
 		"docker-compose.yml", // For migration convenience
 		"docker-compose.yaml",

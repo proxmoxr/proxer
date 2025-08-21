@@ -13,7 +13,7 @@ var (
 	cfgFile string
 	verbose bool
 	dryRun  bool
-	
+
 	// Version information
 	version   string
 	gitCommit string

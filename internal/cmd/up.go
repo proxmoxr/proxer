@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/brynnjknight/proxer/pkg/config"
 	"github.com/brynnjknight/proxer/pkg/runner"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -143,7 +144,7 @@ func printUpSummary() {
 				} else if service.Template != "" {
 					buildInfo = fmt.Sprintf(" (template: %s)", service.Template)
 				}
-				
+
 				fmt.Printf("    %d. %s%s\n", i+1, serviceName, buildInfo)
 			}
 		}
@@ -184,12 +185,12 @@ func printUpDryRun() error {
 	step := 3
 	for _, serviceName := range serviceOrder {
 		service := stack.Services[serviceName]
-		
+
 		if service.HasBuild() {
 			fmt.Printf("  %d. Build template for service '%s'\n", step, serviceName)
 			step++
 		}
-		
+
 		fmt.Printf("  %d. Create and start container for service '%s'\n", step, serviceName)
 		step++
 	}
@@ -211,7 +212,7 @@ func printDeploymentResults(result *runner.DeploymentResult) {
 			if service.Error != nil {
 				PrintError("  %s: Failed - %v", service.Name, service.Error)
 			} else {
-				fmt.Printf("  ✓ %s: Container %d (%s)\n", 
+				fmt.Printf("  ✓ %s: Container %d (%s)\n",
 					service.Name, service.ContainerID, service.Status)
 				if IsVerbose() && service.BuildTime > 0 {
 					fmt.Printf("    Build time: %v\n", service.BuildTime)
@@ -245,4 +246,3 @@ func printDeploymentResults(result *runner.DeploymentResult) {
 		}
 	}
 }
-

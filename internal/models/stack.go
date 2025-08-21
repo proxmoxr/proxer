@@ -137,11 +137,11 @@ type BackupConfig struct {
 
 // Settings represents global stack settings
 type Settings struct {
-	DefaultResources *Resources      `yaml:"default_resources,omitempty"`
-	DefaultSecurity  *Security       `yaml:"default_security,omitempty"`
-	DefaultNetwork   string          `yaml:"default_network,omitempty"`
-	DefaultBackup    *BackupConfig   `yaml:"default_backup,omitempty"`
-	Proxmox          *ProxmoxConfig  `yaml:"proxmox,omitempty"`
+	DefaultResources *Resources     `yaml:"default_resources,omitempty"`
+	DefaultSecurity  *Security      `yaml:"default_security,omitempty"`
+	DefaultNetwork   string         `yaml:"default_network,omitempty"`
+	DefaultBackup    *BackupConfig  `yaml:"default_backup,omitempty"`
+	Proxmox          *ProxmoxConfig `yaml:"proxmox,omitempty"`
 }
 
 // ProxmoxConfig represents Proxmox-specific settings
@@ -322,7 +322,7 @@ func (s *Service) GetBuildConfig() *BuildConfig {
 	if s.Build == nil {
 		return nil
 	}
-	
+
 	switch build := s.Build.(type) {
 	case string:
 		// Build field is a string (directory path)

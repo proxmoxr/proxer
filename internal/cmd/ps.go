@@ -8,9 +8,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/brynnjknight/proxer/pkg/proxmox"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/brynnjknight/proxer/pkg/proxmox"
 )
 
 var (
@@ -101,19 +102,19 @@ func applyFilters(containers []proxmox.ContainerInfo, filters []string) []proxmo
 	}
 
 	var filtered []proxmox.ContainerInfo
-	
+
 	for _, container := range containers {
 		include := true
-		
+
 		for _, filter := range filters {
 			parts := strings.SplitN(filter, "=", 2)
 			if len(parts) != 2 {
 				continue
 			}
-			
+
 			key := parts[0]
 			value := parts[1]
-			
+
 			switch key {
 			case "tag":
 				if !strings.Contains(container.Tags, value) {
@@ -129,12 +130,12 @@ func applyFilters(containers []proxmox.ContainerInfo, filters []string) []proxmo
 				}
 			}
 		}
-		
+
 		if include {
 			filtered = append(filtered, container)
 		}
 	}
-	
+
 	return filtered
 }
 
@@ -163,7 +164,7 @@ func printContainerTable(containers []proxmox.ContainerInfo) error {
 		memory := formatMemory(container.Memory)
 		uptime := formatUptime(container.Uptime)
 		tags := formatTags(container.Tags)
-		
+
 		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			container.VMID,
 			truncateStringPS(container.Name, 20),
@@ -192,12 +193,10 @@ func printCustomFormat(containers []proxmox.ContainerInfo, format string) error 
 		output = strings.ReplaceAll(output, "{{.Tags}}", container.Tags)
 		output = strings.ReplaceAll(output, "\\t", "\t")
 		output = strings.ReplaceAll(output, "\\n", "\n")
-		
+
 		// Handle table prefix
-		if strings.HasPrefix(output, "table ") {
-			output = strings.TrimPrefix(output, "table ")
-		}
-		
+		output = strings.TrimPrefix(output, "table ")
+
 		fmt.Println(output)
 	}
 	return nil
@@ -233,14 +232,14 @@ func formatMemory(memory int64) string {
 	if memory == 0 {
 		return "-"
 	}
-	
+
 	// Convert from bytes to appropriate unit
 	const (
 		KB = 1024
 		MB = 1024 * KB
 		GB = 1024 * MB
 	)
-	
+
 	if memory >= GB {
 		return fmt.Sprintf("%.1fGB", float64(memory)/GB)
 	} else if memory >= MB {
@@ -257,13 +256,13 @@ func formatUptime(uptime int64) string {
 	if uptime == 0 {
 		return "-"
 	}
-	
+
 	duration := time.Duration(uptime) * time.Second
-	
+
 	days := int(duration.Hours()) / 24
 	hours := int(duration.Hours()) % 24
 	minutes := int(duration.Minutes()) % 60
-	
+
 	if days > 0 {
 		return fmt.Sprintf("%dd%dh", days, hours)
 	} else if hours > 0 {
@@ -278,11 +277,11 @@ func formatTags(tags string) string {
 	if tags == "" {
 		return "-"
 	}
-	
+
 	if !noTrunc && len(tags) > 20 {
 		return tags[:17] + "..."
 	}
-	
+
 	return tags
 }
 

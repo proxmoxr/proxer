@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/brynnjknight/proxer/pkg/config"
 	"github.com/brynnjknight/proxer/pkg/runner"
-	"github.com/spf13/cobra"
 )
 
 var (
-	removeVolumes  bool
-	removeOrphans  bool
-	timeout        int
+	removeVolumes bool
+	removeOrphans bool
+	timeout       int
 )
 
 // downCmd represents the down command
@@ -138,7 +139,7 @@ func printDownSummary() {
 				opp := len(serviceOrder) - 1 - i
 				serviceOrder[i], serviceOrder[opp] = serviceOrder[opp], serviceOrder[i]
 			}
-			
+
 			for i, serviceName := range serviceOrder {
 				fmt.Printf("    %d. %s\n", i+1, serviceName)
 			}
@@ -214,8 +215,7 @@ func removeOrphanedContainers() error {
 	// 1. List all containers tagged with project name
 	// 2. Compare with containers defined in stack
 	// 3. Remove any that aren't defined
-	
+
 	PrintInfo("Removing orphaned containers (placeholder)")
 	return nil
 }
-

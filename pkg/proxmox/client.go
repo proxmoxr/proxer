@@ -34,18 +34,18 @@ type ContainerInfo struct {
 
 // ContainerConfig represents detailed container configuration
 type ContainerConfig struct {
-	VMID        int               `json:"vmid"`
-	Hostname    string            `json:"hostname,omitempty"`
-	Memory      int               `json:"memory,omitempty"`
-	Swap        int               `json:"swap,omitempty"`
-	Cores       int               `json:"cores,omitempty"`
-	CPULimit    int               `json:"cpulimit,omitempty"`
-	RootFS      string            `json:"rootfs,omitempty"`
-	Net0        string            `json:"net0,omitempty"`
-	Features    string            `json:"features,omitempty"`
-	Unprivileged bool             `json:"unprivileged,omitempty"`
-	Environment map[string]string `json:"env,omitempty"`
-	MountPoints map[string]string `json:"mp,omitempty"`
+	VMID         int               `json:"vmid"`
+	Hostname     string            `json:"hostname,omitempty"`
+	Memory       int               `json:"memory,omitempty"`
+	Swap         int               `json:"swap,omitempty"`
+	Cores        int               `json:"cores,omitempty"`
+	CPULimit     int               `json:"cpulimit,omitempty"`
+	RootFS       string            `json:"rootfs,omitempty"`
+	Net0         string            `json:"net0,omitempty"`
+	Features     string            `json:"features,omitempty"`
+	Unprivileged bool              `json:"unprivileged,omitempty"`
+	Environment  map[string]string `json:"env,omitempty"`
+	MountPoints  map[string]string `json:"mp,omitempty"`
 }
 
 // NewClient creates a new Proxmox client
@@ -71,7 +71,7 @@ func (c *Client) ListContainers() ([]ContainerInfo, error) {
 				Status: "running",
 				CPUs:   2.0,
 				Memory: 1024 * 1024 * 1024, // 1GB in bytes
-				Uptime: 3600,                // 1 hour
+				Uptime: 3600,               // 1 hour
 				Tags:   "pxc,webapp",
 			},
 			{
@@ -80,7 +80,7 @@ func (c *Client) ListContainers() ([]ContainerInfo, error) {
 				Status: "running",
 				CPUs:   1.0,
 				Memory: 512 * 1024 * 1024, // 512MB in bytes
-				Uptime: 7200,               // 2 hours
+				Uptime: 7200,              // 2 hours
 				Tags:   "pxc,database",
 			},
 			{
@@ -163,7 +163,7 @@ func (c *Client) CreateContainer(vmid int, template string, config *ContainerCon
 	}
 
 	args := []string{"create", strconv.Itoa(vmid), template}
-	
+
 	if config.Hostname != "" {
 		args = append(args, "--hostname", config.Hostname)
 	}
@@ -267,7 +267,7 @@ func (c *Client) parseContainerList(output string) ([]ContainerInfo, error) {
 	}
 
 	var containers []ContainerInfo
-	
+
 	// Skip header line
 	for _, line := range lines[1:] {
 		fields := strings.Fields(line)
@@ -356,10 +356,10 @@ func (c *Client) parseContainerConfig(vmid int, output string) (*ContainerConfig
 // runPCTCommand executes a pct command
 func (c *Client) runPCTCommand(args ...string) error {
 	cmd := exec.Command("pct", args...)
-	
+
 	if c.verbose {
 		fmt.Printf("Executing: pct %s\n", strings.Join(args, " "))
 	}
-	
+
 	return cmd.Run()
 }

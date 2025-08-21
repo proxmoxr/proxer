@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
+
 	"github.com/brynnjknight/proxer/internal/models"
 	"github.com/brynnjknight/proxer/pkg/builder"
 	"github.com/brynnjknight/proxer/pkg/config"
 	"github.com/brynnjknight/proxer/pkg/proxmox"
-	"github.com/fatih/color"
 )
 
 // Orchestrator manages multi-container applications
@@ -319,13 +320,13 @@ func (o *Orchestrator) generateContainerID(serviceName string) (int, error) {
 	// Use a hash-based approach for consistent IDs
 	// In production, we might want to track these in a state file
 	baseID := 200 // Start from 200 to avoid conflicts with manual containers
-	
+
 	// Simple hash of project name + service name
 	hash := 0
 	for _, char := range o.projectName + serviceName {
 		hash = (hash*31 + int(char)) % 1000
 	}
-	
+
 	return baseID + hash, nil
 }
 
@@ -391,7 +392,7 @@ func (o *Orchestrator) createNetworks(stack *models.LXCStack, result *Deployment
 }
 
 func (o *Orchestrator) createVolumes(stack *models.LXCStack, result *DeploymentResult) error {
-	// TODO: Implement volume creation  
+	// TODO: Implement volume creation
 	if o.verbose {
 		o.log("Creating volumes (placeholder)")
 	}

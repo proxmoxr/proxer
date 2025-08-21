@@ -3,12 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/spf13/cobra"
 
 	"github.com/brynnjknight/proxer/internal/models"
 	"github.com/brynnjknight/proxer/pkg/builder"
 	"github.com/brynnjknight/proxer/pkg/config"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -127,7 +127,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 func printBuildSummary(lxcfile *models.LXCfile) {
 	fmt.Println("\nBuild Summary:")
 	fmt.Printf("  Base: %s\n", lxcfile.From)
-	
+
 	if lxcfile.Metadata != nil {
 		if lxcfile.Metadata.Description != "" {
 			fmt.Printf("  Description: %s\n", lxcfile.Metadata.Description)
@@ -138,13 +138,13 @@ func printBuildSummary(lxcfile *models.LXCfile) {
 	}
 
 	fmt.Printf("  Setup steps: %d\n", len(lxcfile.Setup))
-	
+
 	if len(lxcfile.Cleanup) > 0 {
 		fmt.Printf("  Cleanup steps: %d\n", len(lxcfile.Cleanup))
 	}
 
 	if lxcfile.Resources != nil {
-		fmt.Printf("  Resources: %.1f cores, %d MB RAM\n", 
+		fmt.Printf("  Resources: %.1f cores, %d MB RAM\n",
 			lxcfile.Resources.Cores, lxcfile.Resources.Memory)
 	}
 
@@ -162,7 +162,7 @@ func printBuildSummary(lxcfile *models.LXCfile) {
 func printDryRunPlan(lxcfile *models.LXCfile, templateName string) error {
 	fmt.Println("\nDry Run Plan:")
 	fmt.Printf("  1. Create temporary container from base: %s\n", lxcfile.From)
-	
+
 	for i, step := range lxcfile.Setup {
 		if step.Run != "" {
 			fmt.Printf("  %d. Execute: %s\n", i+2, truncateString(step.Run, 60))
@@ -185,9 +185,4 @@ func printDryRunPlan(lxcfile *models.LXCfile, templateName string) error {
 	fmt.Printf("  %d. Clean up temporary container\n", len(lxcfile.Setup)+5)
 
 	return nil
-}
-
-// getBuildFileDir returns the directory containing the LXCfile for resolving relative paths
-func getBuildFileDir() string {
-	return filepath.Dir(buildFile)
 }

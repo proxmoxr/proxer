@@ -77,9 +77,9 @@ type Resources struct {
 
 // Security defines security and isolation settings
 type Security struct {
-	Isolation    string       `yaml:"isolation,omitempty"` // default | strict | privileged
-	AppArmor     bool         `yaml:"apparmor,omitempty"`
-	Seccomp      bool         `yaml:"seccomp,omitempty"`
+	Isolation    string        `yaml:"isolation,omitempty"` // default | strict | privileged
+	AppArmor     bool          `yaml:"apparmor,omitempty"`
+	Seccomp      bool          `yaml:"seccomp,omitempty"`
 	Capabilities *Capabilities `yaml:"capabilities,omitempty"`
 }
 
