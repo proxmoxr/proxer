@@ -1,0 +1,86 @@
+# Simple Node.js web application example
+from: "debian:12"
+
+metadata:
+  name: "simple-webapp"
+  description: "A basic Node.js web application"
+  version: "1.0.0"
+  author: "developer@example.com"
+
+features:
+  unprivileged: true
+  nesting: false
+
+resources:
+  cores: 2
+  memory: 1024
+  swap: 512
+
+security:
+  isolation: "default"
+  apparmor: true
+
+setup:
+  # Update system and install Node.js
+  - run: |
+      apt-get update
+      apt-get install -y curl gnupg
+      curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+      apt-get install -y nodejs
+
+  # Create app directory
+  - run: |
+      mkdir -p /opt/app
+      useradd -r -s /bin/false -d /opt/app appuser
+
+  # Copy application files
+  - copy:
+      source: "./app"
+      dest: "/opt/app"
+      owner: "appuser:appuser"
+      mode: "755"
+
+  # Install dependencies
+  - run: |
+      cd /opt/app
+      npm ci --only=production
+
+  # Set up systemd service
+  - copy:
+      source: "./app.service"
+      dest: "/etc/systemd/system/app.service"
+  - run: |
+      systemctl enable app.service
+
+  # Set environment
+  - env:
+      NODE_ENV: "production"
+      PORT: "3000"
+
+startup:
+  command: "systemctl start app.service"
+  user: "root"
+
+network:
+  hostname: "webapp"
+
+ports:
+  - container: 3000
+    host: 8080
+
+health:
+  test: "curl -f http://localhost:3000/health || exit 1"
+  interval: "30s"
+  timeout: "5s"
+  retries: 3
+
+cleanup:
+  - run: |
+      apt-get autoremove -y
+      apt-get autoclean
+      rm -rf /var/lib/apt/lists/*
+      rm -rf /tmp/*
+
+labels:
+  project: "simple-webapp"
+  environment: "demo"

@@ -1,0 +1,259 @@
+# lxc-stack.yml Schema - Multi-Container Application Definition
+# This file defines a complete application stack with multiple LXC containers
+
+# Required: Schema version for compatibility
+version: "1.0"
+
+# Optional: Stack metadata
+metadata:
+  name: "web-app-stack"
+  description: "Full web application with database and cache"
+  version: "2.1.0"
+  author: "team@example.com"
+
+# Required: Service definitions (containers)
+services:
+  # Frontend web server
+  web:
+    # Build from LXCfile or use pre-built template
+    build:
+      context: "./web"                  # Directory containing LXCfile.yml
+      dockerfile: "LXCfile.yml"         # Custom filename (default: LXCfile.yml)
+    
+    # Alternative: use pre-built template
+    # template: "web-app-template:1.0"
+    
+    # Container-specific overrides
+    hostname: "web-server"
+    
+    # Resource limits (override LXCfile settings)
+    resources:
+      cores: 4
+      memory: 2048
+    
+    # Environment variables
+    environment:
+      DATABASE_HOST: "database"         # Service name for internal communication
+      REDIS_HOST: "cache"
+      NODE_ENV: "production"
+      DEBUG: "false"
+    
+    # Port mappings
+    ports:
+      - "80:3000"                       # host:container
+      - "443:3443"
+    
+    # Volume mounts
+    volumes:
+      - "/host/web-data:/opt/app/data"  # host:container
+      - "/host/logs:/opt/app/logs"
+      - "web-config:/etc/app"           # named volume
+    
+    # Service dependencies (start order)
+    depends_on:
+      - database
+      - cache
+    
+    # Health check override
+    health:
+      test: "curl -f http://localhost:3000/health"
+      interval: "15s"
+    
+    # Restart policy
+    restart: "unless-stopped"           # no | always | on-failure | unless-stopped
+    
+    # Security overrides
+    security:
+      isolation: "strict"
+    
+    # Network assignment
+    networks:
+      - frontend
+      - backend
+
+  # Database server
+  database:
+    build: "./database"
+    hostname: "db-server"
+    
+    environment:
+      POSTGRES_DB: "appdb"
+      POSTGRES_USER: "appuser"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/db_password"  # Use secrets
+    
+    volumes:
+      - "db-data:/var/lib/postgresql/data"  # Named volume for persistence
+      - "/host/db-backup:/backup"           # Backup location
+    
+    # No external port exposure (internal only)
+    expose:
+      - "5432"
+    
+    networks:
+      - backend
+    
+    # Resource limits
+    resources:
+      cores: 2
+      memory: 1024
+      
+    # Backup configuration
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"              # Daily at 2 AM
+      retention: 7                       # Keep 7 days
+
+  # Redis cache
+  cache:
+    build: "./cache"
+    hostname: "cache-server"
+    
+    volumes:
+      - "cache-data:/data"
+    
+    expose:
+      - "6379"
+    
+    networks:
+      - backend
+    
+    resources:
+      cores: 1
+      memory: 512
+
+  # Background worker
+  worker:
+    build: "./worker"
+    hostname: "worker-01"
+    
+    environment:
+      DATABASE_HOST: "database"
+      REDIS_HOST: "cache"
+      WORKER_PROCESSES: "4"
+    
+    depends_on:
+      - database
+      - cache
+    
+    networks:
+      - backend
+    
+    # Scale this service
+    scale: 2                            # Run 2 instances
+
+# Optional: Named volumes definition
+volumes:
+  db-data:
+    driver: "zfs"                       # Use ZFS for database storage
+    options:
+      compression: "lz4"
+      recordsize: "8k"
+  
+  cache-data:
+    driver: "local"                     # Standard directory
+    
+  web-config:
+    driver: "local"
+    options:
+      type: "tmpfs"                     # In-memory volume
+      device: "tmpfs"
+      o: "size=100m"
+
+# Optional: Network definitions
+networks:
+  frontend:
+    driver: "bridge"
+    name: "web-frontend"                # Custom bridge name
+    subnet: "172.20.0.0/24"
+    gateway: "172.20.0.1"
+    options:
+      parent: "vmbr0"                   # Proxmox bridge
+  
+  backend:
+    driver: "bridge"
+    name: "web-backend"
+    subnet: "172.21.0.0/24"
+    gateway: "172.21.0.1"
+    internal: true                      # No external access
+    options:
+      parent: "vmbr1"
+
+# Optional: Secrets management
+secrets:
+  db_password:
+    file: "./secrets/db_password.txt"   # Read from file
+  
+  api_key:
+    external: true                      # Managed externally
+    name: "app_api_key"
+
+# Optional: Configuration files/templates
+configs:
+  nginx_conf:
+    file: "./config/nginx.conf"
+    target: "/etc/nginx/nginx.conf"
+    mode: 0644
+    user: "nginx"
+    group: "nginx"
+
+# Optional: Global settings
+settings:
+  # Default resource limits for all services
+  default_resources:
+    cores: 1
+    memory: 512
+  
+  # Default security settings
+  default_security:
+    isolation: "default"
+    unprivileged: true
+  
+  # Networking defaults
+  default_network: "frontend"
+  
+  # Backup defaults
+  default_backup:
+    enabled: false
+    retention: 3
+  
+  # Proxmox-specific settings
+  proxmox:
+    node: "pve"                         # Proxmox node name
+    storage: "local-zfs"                # Default storage
+    template_storage: "local"           # Where to store templates
+    
+# Optional: Hooks for lifecycle events
+hooks:
+  pre_start:
+    - "echo 'Starting application stack...'"
+    - "./scripts/pre-start.sh"
+  
+  post_start:
+    - "./scripts/post-start.sh"
+    - "echo 'Stack started successfully'"
+  
+  pre_stop:
+    - "./scripts/backup-data.sh"
+  
+  post_stop:
+    - "echo 'Stack stopped'"
+
+# Optional: Development overrides
+development:
+  # Override settings for development environment
+  services:
+    web:
+      environment:
+        NODE_ENV: "development"
+        DEBUG: "true"
+      volumes:
+        - "./src:/opt/app/src"          # Live code reload
+      ports:
+        - "3000:3000"                   # Direct port mapping
+  
+  # Additional development services
+  extra_services:
+    debug:
+      build: "./debug"
+      ports:
+        - "9229:9229"                   # Node.js debug port

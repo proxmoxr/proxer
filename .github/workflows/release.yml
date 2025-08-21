@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.22
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Set up build environment
+      run: |
+        echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+        echo "GIT_COMMIT=${GITHUB_SHA}" >> $GITHUB_ENV
+
+    - name: Build binaries
+      run: |
+        # Build for multiple platforms
+        GOOS=linux GOARCH=amd64 go build -ldflags="-X 'main.Version=${{ env.VERSION }}' -X 'main.GitCommit=${{ env.GIT_COMMIT }}' -X 'main.BuildDate=${{ env.BUILD_DATE }}'" -o dist/pxc-linux-amd64 ./cmd/pxc
+        GOOS=linux GOARCH=arm64 go build -ldflags="-X 'main.Version=${{ env.VERSION }}' -X 'main.GitCommit=${{ env.GIT_COMMIT }}' -X 'main.BuildDate=${{ env.BUILD_DATE }}'" -o dist/pxc-linux-arm64 ./cmd/pxc
+        GOOS=linux GOARCH=386 go build -ldflags="-X 'main.Version=${{ env.VERSION }}' -X 'main.GitCommit=${{ env.GIT_COMMIT }}' -X 'main.BuildDate=${{ env.BUILD_DATE }}'" -o dist/pxc-linux-386 ./cmd/pxc
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-X 'main.Version=${{ env.VERSION }}' -X 'main.GitCommit=${{ env.GIT_COMMIT }}' -X 'main.BuildDate=${{ env.BUILD_DATE }}'" -o dist/pxc-darwin-amd64 ./cmd/pxc
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-X 'main.Version=${{ env.VERSION }}' -X 'main.GitCommit=${{ env.GIT_COMMIT }}' -X 'main.BuildDate=${{ env.BUILD_DATE }}'" -o dist/pxc-darwin-arm64 ./cmd/pxc
+
+    - name: Create checksums
+      run: |
+        cd dist
+        sha256sum * > checksums.txt
+
+    - name: Generate release notes
+      run: |
+        echo "## What's Changed" > release-notes.md
+        echo "" >> release-notes.md
+        echo "### Installation" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "Download the appropriate binary for your platform:" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "**Linux (x86_64):**" >> release-notes.md
+        echo '```bash' >> release-notes.md
+        echo "curl -L https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pxc-linux-amd64 -o /usr/local/bin/pxc" >> release-notes.md
+        echo "chmod +x /usr/local/bin/pxc" >> release-notes.md
+        echo '```' >> release-notes.md
+        echo "" >> release-notes.md
+        echo "**Linux (ARM64):**" >> release-notes.md
+        echo '```bash' >> release-notes.md
+        echo "curl -L https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pxc-linux-arm64 -o /usr/local/bin/pxc" >> release-notes.md
+        echo "chmod +x /usr/local/bin/pxc" >> release-notes.md
+        echo '```' >> release-notes.md
+        echo "" >> release-notes.md
+        echo "**macOS (Intel):**" >> release-notes.md
+        echo '```bash' >> release-notes.md
+        echo "curl -L https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pxc-darwin-amd64 -o /usr/local/bin/pxc" >> release-notes.md
+        echo "chmod +x /usr/local/bin/pxc" >> release-notes.md
+        echo '```' >> release-notes.md
+        echo "" >> release-notes.md
+        echo "**macOS (Apple Silicon):**" >> release-notes.md
+        echo '```bash' >> release-notes.md
+        echo "curl -L https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pxc-darwin-arm64 -o /usr/local/bin/pxc" >> release-notes.md
+        echo "chmod +x /usr/local/bin/pxc" >> release-notes.md
+        echo '```' >> release-notes.md
+        echo "" >> release-notes.md
+        echo "### Verify Installation" >> release-notes.md
+        echo '```bash' >> release-notes.md
+        echo "pxc version" >> release-notes.md
+        echo "pxc --help" >> release-notes.md
+        echo '```' >> release-notes.md
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body_path: release-notes.md
+        files: |
+          dist/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

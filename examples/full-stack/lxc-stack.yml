@@ -1,0 +1,214 @@
+# Full-stack web application example
+# Demonstrates multi-container orchestration with Proxer
+
+version: "1.0"
+
+metadata:
+  name: "full-stack-demo"
+  description: "Complete web application with database and cache"
+  version: "1.0.0"
+
+services:
+  # Frontend web server
+  web:
+    build:
+      context: "./web"
+      dockerfile: "LXCfile.yml"
+    hostname: "web-server"
+    
+    environment:
+      DATABASE_URL: "postgresql://app:password@database:5432/appdb"
+      REDIS_URL: "redis://cache:6379"
+      NODE_ENV: "production"
+    
+    ports:
+      - "80:3000"
+      - "443:3443"
+    
+    volumes:
+      - "web-logs:/var/log/app"
+      - "./config/nginx.conf:/etc/nginx/nginx.conf"
+    
+    depends_on:
+      - database
+      - cache
+    
+    networks:
+      - frontend
+      - backend
+    
+    health:
+      test: "curl -f http://localhost:3000/health"
+      interval: "15s"
+      timeout: "5s"
+      retries: 3
+    
+    restart: "unless-stopped"
+    
+    resources:
+      cores: 2
+      memory: 1024
+
+  # PostgreSQL database
+  database:
+    build: "./database"
+    hostname: "db-server"
+    
+    environment:
+      POSTGRES_DB: "appdb"
+      POSTGRES_USER: "app"
+      POSTGRES_PASSWORD: "password"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    
+    volumes:
+      - "db-data:/var/lib/postgresql/data"
+      - "./database/init.sql:/docker-entrypoint-initdb.d/init.sql"
+    
+    expose:
+      - "5432"
+    
+    networks:
+      - backend
+    
+    resources:
+      cores: 1
+      memory: 512
+    
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      retention: 7
+
+  # Redis cache
+  cache:
+    build: "./cache"
+    hostname: "cache-server"
+    
+    command: "redis-server --appendonly yes"
+    
+    volumes:
+      - "cache-data:/data"
+    
+    expose:
+      - "6379"
+    
+    networks:
+      - backend
+    
+    resources:
+      cores: 1
+      memory: 256
+
+  # Background worker
+  worker:
+    build: "./worker"
+    hostname: "worker-01"
+    
+    environment:
+      DATABASE_URL: "postgresql://app:password@database:5432/appdb"
+      REDIS_URL: "redis://cache:6379"
+      WORKER_PROCESSES: "2"
+    
+    depends_on:
+      - database
+      - cache
+    
+    networks:
+      - backend
+    
+    scale: 2  # Run 2 worker instances
+    
+    restart: "always"
+
+# Named volumes for persistent data
+volumes:
+  db-data:
+    driver: "zfs"
+    options:
+      compression: "lz4"
+      recordsize: "8k"
+      
+  cache-data:
+    driver: "local"
+    
+  web-logs:
+    driver: "local"
+    options:
+      type: "tmpfs"
+      device: "tmpfs"
+      o: "size=100m"
+
+# Network configuration
+networks:
+  frontend:
+    driver: "bridge"
+    name: "app-frontend"
+    subnet: "172.20.0.0/24"
+    gateway: "172.20.0.1"
+    options:
+      parent: "vmbr0"
+  
+  backend:
+    driver: "bridge"
+    name: "app-backend"
+    subnet: "172.21.0.0/24"
+    gateway: "172.21.0.1"
+    internal: true  # No external access
+
+# Global settings
+settings:
+  default_resources:
+    cores: 1
+    memory: 512
+  
+  default_security:
+    isolation: "default"
+    unprivileged: true
+  
+  proxmox:
+    node: "pve"
+    storage: "local-zfs"
+    template_storage: "local"
+
+# Lifecycle hooks
+hooks:
+  pre_start:
+    - "echo 'Starting full-stack application...'"
+    - "./scripts/pre-deploy.sh"
+  
+  post_start:
+    - "./scripts/post-deploy.sh"
+    - "echo 'Application started successfully'"
+  
+  pre_stop:
+    - "./scripts/backup-data.sh"
+  
+  post_stop:
+    - "echo 'Application stopped'"
+
+# Development overrides
+development:
+  services:
+    web:
+      environment:
+        NODE_ENV: "development"
+        DEBUG: "app:*"
+      volumes:
+        - "./web/src:/opt/app/src"  # Live reload
+      ports:
+        - "3000:3000"  # Direct access
+    
+    database:
+      environment:
+        POSTGRES_PASSWORD: "dev_password"
+      
+  extra_services:
+    # Development tools
+    adminer:
+      template: "adminer:latest"
+      ports:
+        - "8080:8080"
+      environment:
+        ADMINER_DEFAULT_SERVER: "database"
+      networks:
+        - backend

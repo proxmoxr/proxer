@@ -1,0 +1,31 @@
+[Unit]
+Description=Simple WebApp Node.js Service
+After=network.target
+
+[Service]
+Type=simple
+User=appuser
+Group=appuser
+WorkingDirectory=/opt/app
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/app
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=simple-webapp
+
+[Install]
+WantedBy=multi-user.target
