@@ -56,7 +56,7 @@ func New(config *Config) *Builder {
 		config.ProxmoxNode = "localhost"
 	}
 	if config.Storage == "" {
-		config.Storage = "local"
+		config.Storage = "local-lvm"
 	}
 	if config.TemplateStorage == "" {
 		config.TemplateStorage = "local"
