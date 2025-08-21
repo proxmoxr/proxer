@@ -26,10 +26,13 @@ type Orchestrator struct {
 
 // Config holds orchestrator configuration
 type Config struct {
-	Verbose     bool
-	DryRun      bool
-	ProjectName string
-	BaseDir     string
+	Verbose         bool
+	DryRun          bool
+	ProjectName     string
+	BaseDir         string
+	ProxmoxNode     string
+	Storage         string
+	TemplateStorage string
 }
 
 // DeploymentResult contains the results of a deployment operation
@@ -81,8 +84,11 @@ func New(config *Config) *Orchestrator {
 	return &Orchestrator{
 		client: proxmox.NewClient("", config.Verbose, config.DryRun),
 		builder: builder.New(&builder.Config{
-			Verbose: config.Verbose,
-			DryRun:  config.DryRun,
+			Verbose:         config.Verbose,
+			DryRun:          config.DryRun,
+			ProxmoxNode:     config.ProxmoxNode,
+			Storage:         config.Storage,
+			TemplateStorage: config.TemplateStorage,
 		}),
 		verbose:     config.Verbose,
 		dryRun:      config.DryRun,

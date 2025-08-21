@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/brynnjknight/proxer/pkg/config"
 	"github.com/brynnjknight/proxer/pkg/runner"
@@ -90,10 +91,13 @@ func runUp(cmd *cobra.Command, args []string) error {
 
 	// Create orchestrator
 	orchestrator := runner.New(&runner.Config{
-		Verbose:     IsVerbose(),
-		DryRun:      IsDryRun(),
-		ProjectName: projectName,
-		BaseDir:     filepath.Dir(stackFile),
+		Verbose:         IsVerbose(),
+		DryRun:          IsDryRun(),
+		ProjectName:     projectName,
+		BaseDir:         filepath.Dir(stackFile),
+		ProxmoxNode:     viper.GetString("proxmox_node"),
+		Storage:         viper.GetString("storage"),
+		TemplateStorage: viper.GetString("template_storage"),
 	})
 
 	// Deploy the stack

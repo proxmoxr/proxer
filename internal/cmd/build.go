@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/brynnjknight/proxer/internal/models"
 	"github.com/brynnjknight/proxer/pkg/builder"
@@ -99,10 +100,13 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return printDryRunPlan(lxcfile, templateName)
 	}
 
-	// Create builder instance
+	// Create builder instance with configuration from config file
 	bldr := builder.New(&builder.Config{
-		Verbose: IsVerbose(),
-		DryRun:  IsDryRun(),
+		Verbose:     IsVerbose(),
+		DryRun:      IsDryRun(),
+		ProxmoxNode: viper.GetString("proxmox_node"),
+		Storage:     viper.GetString("storage"),
+		TemplateStorage: viper.GetString("template_storage"),
 	})
 
 	// Execute the build
