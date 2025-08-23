@@ -1,0 +1,11 @@
+from: "cephfs:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+metadata:
+  description: "Simple test container for orchestration"
+
+setup:
+  - run: |
+      echo "Setting up container: ${SERVICE_NAME:-unknown}"
+      apt-get update
+      apt-get install -y curl wget
+      echo "Container ${SERVICE_NAME} ready on port ${PORT:-unknown}"

@@ -1,0 +1,3 @@
+storage: "sixteen_tb_hdds"              
+template_storage: "local"    
+proxmox_node: "pveserver2"

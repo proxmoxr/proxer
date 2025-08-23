@@ -90,10 +90,13 @@ func (b *Builder) BuildTemplate(lxcfile *models.LXCfile, templateName string, bu
 		return nil, fmt.Errorf("failed to create temporary container: %w", createErr)
 	}
 
-	// Ensure cleanup happens even if build fails
+	// Track if we should cleanup the container (not if it becomes a template)
+	shouldCleanup := true
 	defer func() {
-		if cleanupErr := b.cleanupTempContainer(containerID); cleanupErr != nil {
-			b.logError("Failed to cleanup temporary container %d: %v", containerID, cleanupErr)
+		if shouldCleanup {
+			if cleanupErr := b.cleanupTempContainer(containerID); cleanupErr != nil {
+				b.logError("Failed to cleanup temporary container %d: %v", containerID, cleanupErr)
+			}
 		}
 	}()
 
@@ -145,6 +148,9 @@ func (b *Builder) BuildTemplate(lxcfile *models.LXCfile, templateName string, bu
 		return nil, fmt.Errorf("failed to export template: %w", err)
 	}
 	result.TemplatePath = templatePath
+
+	// Don't cleanup the container after it becomes a template
+	shouldCleanup = false
 
 	result.BuildDuration = time.Since(startTime)
 	return result, nil
@@ -345,7 +351,7 @@ func (b *Builder) applyContainerConfig(containerID int, lxcfile *models.LXCfile)
 	// Apply resource limits
 	if lxcfile.Resources != nil {
 		if lxcfile.Resources.Cores > 0 {
-			args = append(args, "-cores", fmt.Sprintf("%.1f", lxcfile.Resources.Cores))
+			args = append(args, "-cores", strconv.Itoa(lxcfile.Resources.Cores))
 		}
 		if lxcfile.Resources.Memory > 0 {
 			args = append(args, "-memory", strconv.Itoa(lxcfile.Resources.Memory))
@@ -382,25 +388,24 @@ func (b *Builder) applyContainerConfig(containerID int, lxcfile *models.LXCfile)
 	return nil
 }
 
-// exportTemplate exports the configured container as a template
+// exportTemplate converts the configured container to a template
 func (b *Builder) exportTemplate(containerID int, templateName string) (string, error) {
-	b.log("Exporting template: %s", templateName)
+	b.log("Converting container to template: %s", templateName)
 
 	if b.config.DryRun {
-		return "/fake/path/template.tar.gz", nil
+		// Return template name for dry run (format expected by pct create)
+		return templateName, nil
 	}
 
-	// Generate template filename
-	templateFile := fmt.Sprintf("%s.tar.gz", templateName)
-	templatePath := filepath.Join("/var/lib/vz/template/cache", templateFile)
-
-	// Export the container
-	args := []string{"export", strconv.Itoa(containerID), templatePath}
+	// Convert container to template using pct template command
+	args := []string{"template", strconv.Itoa(containerID)}
 	if err := b.runPCTCommand(args...); err != nil {
 		return "", err
 	}
 
-	return templatePath, nil
+	// Return the container ID as the template reference
+	// Proxmox templates are referenced by container ID, not file path
+	return strconv.Itoa(containerID), nil
 }
 
 // cleanupTempContainer removes the temporary container

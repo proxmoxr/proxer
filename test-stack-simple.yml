@@ -1,0 +1,50 @@
+version: "1.0"
+
+metadata:
+  name: "proxer-test-simple" 
+  description: "Simple multi-container test without network dependencies"
+
+services:
+  # Web service
+  web:
+    build:
+      context: "."
+      dockerfile: "LXCfile-simple.yml" 
+    hostname: "web-server"
+    
+    environment:
+      SERVICE_NAME: "web"
+      PORT: "3000"
+    
+    depends_on:
+      - cache
+    
+    resources:
+      cores: 1
+      memory: 512
+
+  # Simple cache service
+  cache:  
+    build:
+      context: "."
+      dockerfile: "LXCfile-simple.yml"
+    hostname: "cache-server"
+    
+    environment:
+      SERVICE_NAME: "cache"
+      PORT: "6379"
+    
+    resources:
+      cores: 1
+      memory: 256
+
+# Global settings to override config
+settings:
+  default_resources:
+    cores: 1
+    memory: 256
+  
+  proxmox:
+    node: "pveserver2"
+    storage: "sixteen_tb_hdds"
+    template_storage: "local"

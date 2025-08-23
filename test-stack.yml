@@ -1,0 +1,54 @@
+version: "1.0"
+
+metadata:
+  name: "proxer-test-stack" 
+  description: "Simple multi-container test for orchestration"
+
+services:
+  # Web service
+  web:
+    build: "."
+    template: ""  # Will build from LXCfile.yml
+    hostname: "web-server"
+    
+    environment:
+      SERVICE_NAME: "web"
+      PORT: "3000"
+    
+    ports:
+      - "80:3000"
+    
+    depends_on:
+      - cache
+    
+    resources:
+      cores: 2
+      memory: 1024
+
+  # Simple cache service
+  cache:  
+    build: "."
+    template: ""  # Will build from LXCfile.yml
+    hostname: "cache-server"
+    
+    environment:
+      SERVICE_NAME: "cache"
+      PORT: "6379"
+    
+    expose:
+      - "6379"
+    
+    resources:
+      cores: 1
+      memory: 512
+
+# Global settings to override config
+settings:
+  default_resources:
+    cores: 1
+    memory: 256
+  
+  proxmox:
+    node: "pveserver2"
+    storage: "sixteen_tb_hdds"
+    template_storage: "local"

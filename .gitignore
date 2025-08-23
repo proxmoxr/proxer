@@ -60,3 +60,11 @@ coverage.html
 
 # Goreleaser
 .goreleaser.yaml
+
+# Distribution and packaging documentation (private/internal)
+distribution/
+packaging/
+DISTRIBUTION-*.md
+PACKAGING-*.md
+package-strategy/
+repo-strategy/

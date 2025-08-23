@@ -1,0 +1,8 @@
+from: "cephfs:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+metadata:
+  description: "Minimal test without resource config"
+  version: "1.0"
+
+setup:
+  - run: "echo 'Proxer build test successful!'"

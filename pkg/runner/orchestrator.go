@@ -16,12 +16,14 @@ import (
 
 // Orchestrator manages multi-container applications
 type Orchestrator struct {
-	client      *proxmox.Client
-	builder     *builder.Builder
-	verbose     bool
-	dryRun      bool
-	projectName string
-	baseDir     string
+	client          *proxmox.Client
+	builder         *builder.Builder
+	verbose         bool
+	dryRun          bool
+	projectName     string
+	baseDir         string
+	storage         string
+	templateStorage string
 }
 
 // Config holds orchestrator configuration
@@ -90,10 +92,12 @@ func New(config *Config) *Orchestrator {
 			Storage:         config.Storage,
 			TemplateStorage: config.TemplateStorage,
 		}),
-		verbose:     config.Verbose,
-		dryRun:      config.DryRun,
-		projectName: config.ProjectName,
-		baseDir:     config.BaseDir,
+		verbose:         config.Verbose,
+		dryRun:          config.DryRun,
+		projectName:     config.ProjectName,
+		baseDir:         config.BaseDir,
+		storage:         config.Storage,
+		templateStorage: config.TemplateStorage,
 	}
 }
 
@@ -312,13 +316,14 @@ func (o *Orchestrator) ensureTemplate(serviceName string, service models.Service
 	// Build template
 	o.log("Building template for service %s", serviceName)
 	buildStart := time.Now()
-	_, err = o.builder.BuildTemplate(lxcfile, templateName, buildConfig.Args)
+	result, err := o.builder.BuildTemplate(lxcfile, templateName, buildConfig.Args)
 	if err != nil {
 		return "", fmt.Errorf("failed to build template for service %s: %w", serviceName, err)
 	}
 
 	o.log("Template built for service %s in %v", serviceName, time.Since(buildStart))
-	return templateName, nil
+	// Return the container ID (stored in TemplatePath) instead of the templateName
+	return result.TemplatePath, nil
 }
 
 // generateContainerID generates a unique container ID for a service
@@ -341,6 +346,7 @@ func (o *Orchestrator) buildContainerConfig(service models.Service, stack *model
 	config := &proxmox.ContainerConfig{
 		Environment: make(map[string]string),
 		MountPoints: make(map[string]string),
+		Storage:     o.storage, // Set storage from orchestrator config
 	}
 
 	// Apply resource limits
@@ -349,7 +355,7 @@ func (o *Orchestrator) buildContainerConfig(service models.Service, stack *model
 			config.Memory = service.Resources.Memory
 		}
 		if service.Resources.Cores > 0 {
-			config.Cores = int(service.Resources.Cores)
+			config.Cores = service.Resources.Cores
 		}
 		if service.Resources.Swap > 0 {
 			config.Swap = service.Resources.Swap
@@ -361,12 +367,17 @@ func (o *Orchestrator) buildContainerConfig(service models.Service, stack *model
 		config.Memory = stack.Settings.DefaultResources.Memory
 	}
 	if config.Cores == 0 && stack.Settings != nil && stack.Settings.DefaultResources != nil {
-		config.Cores = int(stack.Settings.DefaultResources.Cores)
+		config.Cores = stack.Settings.DefaultResources.Cores
 	}
 
 	// Set environment variables
 	for key, value := range service.Environment {
 		config.Environment[key] = value
+	}
+
+	// Override with stack-specific storage if set
+	if stack.Settings != nil && stack.Settings.Proxmox != nil && stack.Settings.Proxmox.Storage != "" {
+		config.Storage = stack.Settings.Proxmox.Storage
 	}
 
 	return config

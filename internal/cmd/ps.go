@@ -31,21 +31,96 @@ var psCmd = &cobra.Command{
 By default, only shows containers managed by pxc (tagged with 'pxc').
 Use --all to show all LXC containers on the system.
 
-The output shows container ID, name, status, uptime, and resource usage.`,
+OUTPUT INFORMATION:
+  Default table format shows:
+  • VMID: Proxmox container ID
+  • NAME: Container name (from metadata or auto-generated)
+  • STATUS: Current container state (running, stopped, etc.)
+  • UPTIME: Time since container started
+  • MEMORY: Current memory usage / memory limit
+  • CPU: Current CPU usage percentage
+
+FILTERING:
+  Use --filter to narrow results:
+  • tag=value: Filter by container labels/tags
+  • name=pattern: Filter by name pattern
+  • status=state: Filter by container status
+
+FORMAT OPTIONS:
+  --format supports Go template syntax with these fields:
+  • {{.VMID}} - Container ID
+  • {{.Name}} - Container name
+  • {{.Status}} - Container status
+  • {{.Uptime}} - Container uptime
+  • {{.Memory}} - Memory usage
+  • {{.CPU}} - CPU usage
+  • {{.Template}} - Source template
+  • {{.Node}} - Proxmox node
+
+STATUS VALUES:
+  • running: Container is active and operational
+  • stopped: Container is shut down
+  • paused: Container is paused/suspended
+  • template: Container template (not runnable)
+  • error: Container in error state
+
+RESOURCE MONITORING:
+  The ps command shows real-time resource usage:
+  • Memory: Shows current/limit (e.g., "512MB/1024MB")
+  • CPU: Shows current usage percentage
+  • Uptime: Shows time since last start
+
+INTEGRATION:
+  Output can be processed by other tools:
+  • Use --quiet for container IDs only
+  • Use --format for custom output
+  • Combine with shell tools: pxc ps --quiet | xargs pct stop
+
+TROUBLESHOOTING:
+  Common Issues:
+  • "No containers found"
+    → Use --all to see all containers
+    → Check if containers have pxc tags
+    → Verify Proxmox node connectivity
+  
+  • "Permission denied"
+    → Ensure user has Proxmox container privileges
+    → Check if 'pct' command is accessible
+    → Verify Proxmox authentication
+
+AUTOMATION:
+  Useful for scripts and monitoring:
+  • Check if services are running: pxc ps --filter status=running
+  • Get container IDs for batch operations: pxc ps --quiet
+  • Monitor resource usage in scripts`,
 	Example: `  # List pxc-managed containers
   pxc ps
 
-  # List all containers
+  # List all containers on system
   pxc ps --all
 
-  # Show only container IDs
+  # Show only container IDs (useful for scripts)
   pxc ps --quiet
 
-  # Filter by tags
-  pxc ps --filter tag=webapp
+  # Filter by status
+  pxc ps --filter status=running
+  pxc ps --filter status=stopped
 
-  # Custom format
-  pxc ps --format "table {{.VMID}}\t{{.Name}}\t{{.Status}}"`,
+  # Filter by tags/labels
+  pxc ps --filter tag=webapp
+  pxc ps --filter tag=production
+
+  # Custom table format
+  pxc ps --format "table {{.VMID}}\t{{.Name}}\t{{.Status}}\t{{.Memory}}"
+
+  # JSON-like output for automation
+  pxc ps --format "{{.VMID}},{{.Name}},{{.Status}}"
+
+  # Show full information without truncation
+  pxc ps --no-trunc
+
+  # Monitor specific project containers
+  pxc ps --filter tag=myproject --format "table {{.Name}}\t{{.Status}}\t{{.Uptime}}"`,
 	RunE: runPS,
 }
 

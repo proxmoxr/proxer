@@ -28,7 +28,43 @@ var rootCmd = &cobra.Command{
 for managing LXC containers in Proxmox Virtual Environment.
 
 Build and orchestrate LXC containers using familiar YAML configuration files,
-while leveraging Proxmox's native features like snapshots, backups, and clustering.`,
+while leveraging Proxmox's native features like snapshots, backups, and clustering.
+
+CONFIGURATION:
+  pxc looks for configuration files in the following order:
+  1. --config flag value
+  2. ./.pxc.yaml (current directory)
+  3. $HOME/.pxc.yaml (home directory)
+
+  Key configuration options:
+    storage: "local-lvm"          # Container storage backend
+    template_storage: "local"     # Template storage location
+    proxmox_node: "pve"          # Target Proxmox node
+
+ENVIRONMENT VARIABLES:
+  PXC_STORAGE              Override default storage backend
+  PXC_TEMPLATE_STORAGE     Override template storage location
+  PXC_PROXMOX_NODE         Override target Proxmox node
+  PXC_CONFIG               Override config file location
+
+DOCUMENTATION:
+  For comprehensive configuration documentation:
+    docs/LXCfile-reference.md      # Container build configuration
+    docs/lxc-stack-reference.md    # Multi-container orchestration
+    docs/configuration-guide.md    # Best practices and patterns
+
+TROUBLESHOOTING:
+  • Use --dry-run to preview actions without execution
+  • Use --verbose for detailed operation logging
+  • Ensure 'pct' command is available and functional
+  • Check Proxmox storage and template availability
+  • Verify container ID availability (pxc ps --all)
+
+EXIT CODES:
+  0   Success
+  1   General error (configuration, validation, etc.)
+  2   Command execution failed
+  3   Resource allocation failed`,
 	Example: `  # Build a container template from LXCfile.yml
   pxc build -f LXCfile.yml -t myapp:1.0
 
@@ -39,7 +75,13 @@ while leveraging Proxmox's native features like snapshots, backups, and clusteri
   pxc ps
 
   # Stop and remove containers
-  pxc down -f lxc-stack.yml`,
+  pxc down -f lxc-stack.yml
+
+  # Test configuration without execution
+  pxc build --dry-run --verbose
+
+  # Use custom storage configuration
+  PXC_STORAGE=fast-ssd pxc build -t myapp:1.0`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

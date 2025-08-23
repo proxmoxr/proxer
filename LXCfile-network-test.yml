@@ -1,0 +1,16 @@
+from: "cephfs:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+metadata:
+  description: "Network connectivity test container"
+
+setup:
+  - run: |
+      echo "Testing network connectivity..."
+      ping -c 2 8.8.8.8
+      echo "Testing DNS resolution..."
+      nslookup deb.debian.org
+      echo "Testing package installation..."
+      apt-get update && apt-get install -y curl
+      echo "Testing HTTP requests..."
+      curl -s -I https://deb.debian.org | head -3
+      echo "Network test completed successfully!"

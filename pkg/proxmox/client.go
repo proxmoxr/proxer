@@ -40,6 +40,7 @@ type ContainerConfig struct {
 	Swap         int               `json:"swap,omitempty"`
 	Cores        int               `json:"cores,omitempty"`
 	CPULimit     int               `json:"cpulimit,omitempty"`
+	Storage      string            `json:"storage,omitempty"`
 	RootFS       string            `json:"rootfs,omitempty"`
 	Net0         string            `json:"net0,omitempty"`
 	Features     string            `json:"features,omitempty"`
@@ -162,6 +163,13 @@ func (c *Client) CreateContainer(vmid int, template string, config *ContainerCon
 		return nil
 	}
 
+	// Detect if template is a container ID (numeric) or file path
+	if _, err := strconv.Atoi(template); err == nil {
+		// Template is a container ID, use clone
+		return c.cloneContainer(vmid, template, config)
+	}
+
+	// Template is a file path, use create
 	args := []string{"create", strconv.Itoa(vmid), template}
 
 	if config.Hostname != "" {
@@ -173,8 +181,65 @@ func (c *Client) CreateContainer(vmid int, template string, config *ContainerCon
 	if config.Cores > 0 {
 		args = append(args, "--cores", strconv.Itoa(config.Cores))
 	}
+	if config.Storage != "" {
+		args = append(args, "--storage", config.Storage)
+	}
+
+	// Add default network configuration if not specified
+	if config.Net0 == "" {
+		config.Net0 = "name=eth0,bridge=vmbr0,ip=dhcp,type=veth"
+	}
+	if config.Net0 != "" {
+		args = append(args, "--net0", config.Net0)
+	}
 
 	return c.runPCTCommand(args...)
+}
+
+// cloneContainer clones a container from a template container
+func (c *Client) cloneContainer(vmid int, templateID string, config *ContainerConfig) error {
+	// First, clone the template
+	args := []string{"clone", templateID, strconv.Itoa(vmid)}
+
+	if config.Hostname != "" {
+		args = append(args, "--hostname", config.Hostname)
+	}
+
+	if err := c.runPCTCommand(args...); err != nil {
+		return err
+	}
+
+	// Then configure the cloned container with additional settings
+	return c.configureClonedContainer(vmid, config)
+}
+
+// configureClonedContainer configures a cloned container with additional settings
+func (c *Client) configureClonedContainer(vmid int, config *ContainerConfig) error {
+	var args []string
+
+	if config.Memory > 0 {
+		args = append(args, "-memory", strconv.Itoa(config.Memory))
+	}
+	if config.Cores > 0 {
+		args = append(args, "-cores", strconv.Itoa(config.Cores))
+	}
+
+	// Add default network configuration if not specified
+	if config.Net0 == "" {
+		// Set up default bridged network with DHCP
+		config.Net0 = "name=eth0,bridge=vmbr0,ip=dhcp,type=veth"
+	}
+	if config.Net0 != "" {
+		args = append(args, "-net0", config.Net0)
+	}
+
+	// Apply configuration if we have settings to apply
+	if len(args) > 0 {
+		setArgs := append([]string{"set", strconv.Itoa(vmid)}, args...)
+		return c.runPCTCommand(setArgs...)
+	}
+
+	return nil
 }
 
 // StartContainer starts a container

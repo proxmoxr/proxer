@@ -1,0 +1,13 @@
+from: "cephfs:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+metadata:
+  description: "Test cores fix - integer cores value"
+
+resources:
+  cores: 2
+  memory: 1024
+
+setup:
+  - run: |
+      echo "Testing cores configuration"
+      nproc

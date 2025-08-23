@@ -66,13 +66,13 @@ type Features struct {
 
 // Resources defines resource limits and hardware settings
 type Resources struct {
-	Cores    float64 `yaml:"cores,omitempty"`
-	CPULimit int     `yaml:"cpulimit,omitempty"`
-	CPUUnits int     `yaml:"cpuunits,omitempty"`
-	Memory   int     `yaml:"memory,omitempty"`   // Memory in MB
-	Swap     int     `yaml:"swap,omitempty"`     // Swap in MB
-	RootFS   int     `yaml:"rootfs,omitempty"`   // Root filesystem size in GB
-	NetRate  int     `yaml:"net_rate,omitempty"` // Network rate limit in MB/s
+	Cores    int `yaml:"cores,omitempty"`
+	CPULimit int `yaml:"cpulimit,omitempty"`
+	CPUUnits int `yaml:"cpuunits,omitempty"`
+	Memory   int `yaml:"memory,omitempty"`   // Memory in MB
+	Swap     int `yaml:"swap,omitempty"`     // Swap in MB
+	RootFS   int `yaml:"rootfs,omitempty"`   // Root filesystem size in GB
+	NetRate  int `yaml:"net_rate,omitempty"` // Network rate limit in MB/s
 }
 
 // Security defines security and isolation settings
@@ -158,8 +158,8 @@ func (l *LXCfile) Validate() error {
 
 	// Validate setup steps
 	for i, step := range l.Setup {
-		if step.Run == "" && step.Copy == nil && step.Env == nil {
-			return fmt.Errorf("setup step %d must have at least one action (run, copy, or env)", i+1)
+		if step.Run == "" && step.Copy == nil && step.Env == nil && step.WorkDir == "" {
+			return fmt.Errorf("setup step %d must have at least one action (run, copy, env, or workdir)", i+1)
 		}
 
 		if step.Copy != nil {

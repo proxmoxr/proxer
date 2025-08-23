@@ -32,7 +32,49 @@ The build process:
 5. Cleans up the temporary container
 
 The resulting template can be used to create new containers or referenced
-in lxc-stack.yml files for multi-container applications.`,
+in lxc-stack.yml files for multi-container applications.
+
+CONFIGURATION:
+  Build uses these configuration sources (in order of precedence):
+  1. Command-line flags (--build-arg, -t, -f)
+  2. LXCfile.yml content
+  3. Global configuration file (.pxc.yaml)
+  4. Built-in defaults
+
+  Key settings:
+    storage: "local-lvm"          # Where to create build container
+    template_storage: "local"     # Where to save resulting template
+    temp_container_prefix: "pxc-build-"  # Temporary container naming
+
+TROUBLESHOOTING:
+  Common Issues:
+  • "Base template not found" 
+    → Check template availability: pct list templates
+    → Use full path: "storage:vztmpl/template.tar.zst"
+  
+  • "Setup step failed"
+    → Use --dry-run --verbose to debug
+    → Verify file paths exist on host
+    → Check package availability in base image
+  
+  • "Resource allocation failed"
+    → Check available resources: pct list
+    → Verify storage has sufficient space
+    → Try reducing build resource requirements
+
+VALIDATION:
+  The build command validates:
+  • LXCfile.yml syntax and required fields
+  • Base template existence and accessibility  
+  • File paths in copy operations
+  • Resource limits and constraints
+  • Storage availability and permissions
+
+SECURITY:
+  • Containers are built unprivileged by default
+  • Build process runs with minimal required capabilities
+  • Temporary containers are automatically cleaned up
+  • Templates inherit security settings from LXCfile`,
 	Example: `  # Build from default LXCfile.yml
   pxc build
 
@@ -43,7 +85,13 @@ in lxc-stack.yml files for multi-container applications.`,
   pxc build --build-arg NODE_ENV=production --build-arg VERSION=1.2.3
 
   # Dry run to see what would happen
-  pxc build --dry-run`,
+  pxc build --dry-run --verbose
+
+  # Build with custom storage
+  pxc build -t myapp:1.0 --config custom.yaml
+
+  # Build and verify template
+  pxc build -t test:1.0 && pct create 999 local:template/test-1.0.tar.zst --dry-run`,
 	RunE: runBuild,
 }
 
@@ -148,7 +196,7 @@ func printBuildSummary(lxcfile *models.LXCfile) {
 	}
 
 	if lxcfile.Resources != nil {
-		fmt.Printf("  Resources: %.1f cores, %d MB RAM\n",
+		fmt.Printf("  Resources: %d cores, %d MB RAM\n",
 			lxcfile.Resources.Cores, lxcfile.Resources.Memory)
 	}
 
@@ -190,3 +238,4 @@ func printDryRunPlan(lxcfile *models.LXCfile, templateName string) error {
 
 	return nil
 }
+

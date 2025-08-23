@@ -23,28 +23,89 @@ var downCmd = &cobra.Command{
 	Short: "Stop and remove containers, networks, and volumes",
 	Long: `Stop and remove containers, networks, and volumes created by 'pxc up'.
 
-This command:
-1. Executes pre-stop hooks
-2. Stops containers in reverse dependency order
-3. Removes containers
-4. Optionally removes volumes and networks
-5. Executes post-stop hooks
+This command safely tears down multi-container applications:
+1. Executes pre-stop hooks (backup scripts, notifications, etc.)
+2. Stops containers in reverse dependency order (web → api → database)
+3. Removes containers and their configurations
+4. Optionally removes volumes and networks (--volumes flag)
+5. Executes post-stop hooks (cleanup, monitoring updates)
 
-By default, preserves volumes and networks for data safety.`,
-	Example: `  # Stop and remove containers
+SAFETY FEATURES:
+  • Volumes are preserved by default to prevent data loss
+  • Containers are stopped gracefully with configurable timeout
+  • Dependency order ensures services shut down cleanly
+  • Pre-stop hooks allow for backup and cleanup operations
+
+DATA PROTECTION:
+  By default, the following are preserved:
+  • Named volumes (database data, application state)
+  • Networks (can be reused by future deployments)
+  • Templates (built container images)
+  
+  Use --volumes flag to remove volumes (DESTRUCTIVE - data will be lost!)
+
+STOP SEQUENCE:
+  Containers are stopped in reverse dependency order to maintain data integrity.
+  
+  Example: For web → api → database dependencies:
+  1. web (stops first, no other services depend on it)
+  2. api (stops after web is down)
+  3. database (stops last, ensures no active connections)
+
+TIMEOUT HANDLING:
+  • Each container gets timeout seconds to stop gracefully
+  • After timeout, containers are forcibly terminated
+  • Database containers may need longer timeouts for clean shutdown
+  • Use --timeout to adjust based on your application needs
+
+ORPHAN REMOVAL:
+  • --remove-orphans removes containers not defined in current stack
+  • Useful when services have been removed from lxc-stack.yml
+  • Prevents accumulation of unused containers
+
+TROUBLESHOOTING:
+  Common Issues:
+  • "Container won't stop"
+    → Increase timeout: --timeout 60
+    → Check for hung processes in container
+    → Force stop with pct stop <id> --force
+  
+  • "Volume removal failed"
+    → Check if volume is still mounted
+    → Ensure no other containers using volume
+    → Manual cleanup: pct set <id> --delete mp0
+  
+  • "Network removal failed"
+    → Verify no containers still connected
+    → Check for external bridge dependencies
+    → Manual cleanup may be required
+
+RECOVERY:
+  If down fails partially:
+  • Use pxc ps to see remaining containers
+  • Manually stop problematic containers: pct stop <id>
+  • Re-run pxc down to complete cleanup
+  • Use --remove-orphans to catch missed containers`,
+	Example: `  # Stop and remove containers (preserves volumes)
   pxc down
 
-  # Also remove volumes
+  # Remove everything including volumes (DESTRUCTIVE)
   pxc down --volumes
 
   # Use custom stack file
   pxc down -f my-stack.yml
 
-  # Remove orphaned containers
+  # Remove orphaned containers not in stack
   pxc down --remove-orphans
 
-  # Set stop timeout
-  pxc down --timeout 30`,
+  # Increase stop timeout for databases
+  pxc down --timeout 60
+
+  # Dry run to see what would be removed
+  pxc down --dry-run --verbose
+
+  # Emergency cleanup (if normal down fails)
+  pxc down --timeout 5 --remove-orphans --volumes`,
 	RunE: runDown,
 }
 

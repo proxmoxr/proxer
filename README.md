@@ -119,6 +119,13 @@ pxc build --dry-run --verbose
 
 ## 📖 Documentation
 
+### 📚 Comprehensive Documentation
+
+- **[CLI Reference](docs/cli-reference.md)** - Complete command-line interface documentation
+- **[LXCfile.yml Reference](docs/LXCfile-reference.md)** - Complete guide to container build configuration
+- **[lxc-stack.yml Reference](docs/lxc-stack-reference.md)** - Complete guide to multi-container orchestration
+- **[Configuration Best Practices](docs/configuration-guide.md)** - Patterns, security, and optimization guide
+
 ### Configuration Files
 
 #### LXCfile.yml

@@ -22,31 +22,100 @@ var (
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
-	Use:   "up [OPTIONS]",
+	Use:   "up [OPTIONS] [SERVICE...]",
 	Short: "Create and start containers from lxc-stack.yml",
 	Long: `Create and start containers for a multi-container application defined in lxc-stack.yml.
 
-This command:
-1. Builds any missing container templates
-2. Creates networks and volumes as needed
-3. Creates and starts containers in dependency order
-4. Executes post-start hooks
+This command orchestrates the complete deployment process:
+1. Validates stack configuration and resolves service dependencies
+2. Builds any missing container templates from LXCfile definitions
+3. Creates custom networks and named volumes as defined
+4. Creates containers with proper resource allocation and configuration
+5. Starts containers in dependency order (respecting depends_on)
+6. Waits for health checks to pass on all services
+7. Executes post-start hooks for additional setup
 
-By default, looks for lxc-stack.yml in the current directory.`,
+By default, looks for lxc-stack.yml in the current directory.
+
+DEPENDENCY RESOLUTION:
+  Services are started in topological order based on depends_on declarations.
+  Circular dependencies are detected and reported as errors.
+  
+  Example startup order for: web → api → database
+  1. database (no dependencies)
+  2. api (depends on database) 
+  3. web (depends on api)
+
+NETWORKING:
+  • Default network is created automatically if no custom networks defined
+  • Services can communicate using service names as hostnames
+  • Internal networks isolate backend services from external access
+  • Port mappings expose services to host system
+
+VOLUMES AND DATA:
+  • Named volumes are created and mounted as specified
+  • Host bind mounts are validated and created if needed
+  • Volume drivers (local, zfs, nfs) are configured per volume definition
+  • Backup settings are applied to persistent volumes
+
+CONFIGURATION PRECEDENCE:
+  1. Command-line flags (--build-arg, --project-name, etc.)
+  2. lxc-stack.yml service-level settings
+  3. lxc-stack.yml global defaults (settings section)
+  4. Global configuration file (.pxc.yaml)
+  5. Built-in defaults
+
+TROUBLESHOOTING:
+  Common Issues:
+  • "Circular dependency detected"
+    → Review depends_on relationships in services
+    → Use health checks instead of startup dependencies when possible
+  
+  • "Service build failed" 
+    → Check individual LXCfile.yml syntax: pxc build -f path/LXCfile.yml --dry-run
+    → Verify all build contexts and files exist
+  
+  • "Network creation failed"
+    → Check Proxmox bridge availability (vmbr0, vmbr1, etc.)
+    → Ensure subnet ranges don't conflict with existing networks
+  
+  • "Container start failed"
+    → Check resource availability: pxc ps --all
+    → Verify storage space and container ID conflicts
+    → Review container logs for startup errors
+
+SCALING AND LOAD BALANCING:
+  • Use 'scale' parameter to run multiple instances of stateless services
+  • Scaled instances are named service-1, service-2, etc.
+  • Load balancing requires external proxy (nginx, haproxy, etc.)
+
+DEVELOPMENT MODE:
+  • Development overrides automatically applied when detected
+  • Extra services (debug, docs) started alongside main services
+  • Volume mounts enable live code reloading`,
 	Example: `  # Start all services
   pxc up
 
   # Use custom stack file
   pxc up -f my-stack.yml
 
-  # Set project name
-  pxc up --project-name myapp
+  # Start specific services only
+  pxc up web database
 
-  # Build specific services only
-  pxc up --build web database
+  # Set project name for isolation
+  pxc up --project-name myapp-prod
 
-  # Dry run to see what would happen
-  pxc up --dry-run`,
+  # Build and start with arguments
+  pxc up --build --build-arg VERSION=1.2.3
+
+  # Detached mode (background)
+  pxc up --detach
+
+  # Dry run to validate configuration
+  pxc up --dry-run --verbose
+
+  # Force rebuild specific services
+  pxc up --build web --build-arg NODE_ENV=development`,
 	RunE: runUp,
 }
 

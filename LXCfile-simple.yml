@@ -1,0 +1,11 @@
+from: "cephfs:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+metadata:
+  description: "Simple test container without network dependencies"
+
+setup:
+  - run: |
+      echo "Setting up container: ${SERVICE_NAME:-unknown}"
+      echo "Container ${SERVICE_NAME} ready on port ${PORT:-unknown}"
+      whoami
+      hostname

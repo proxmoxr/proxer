@@ -1,0 +1,14 @@
+from: "cephfs:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+metadata:
+  description: "Simple test without network"
+  version: "1.0"
+
+setup:
+  - run: "echo 'Hello from Proxer!' > /tmp/test.txt"
+  - run: "cat /tmp/test.txt"
+  - run: "ls -la /tmp/"
+
+resources:
+  cores: 1
+  memory: 512

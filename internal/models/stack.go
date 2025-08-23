@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 )
 
 // LXCStack represents the structure of an lxc-stack.yml configuration
@@ -273,8 +274,18 @@ func parseVolumeName(volume string) string {
 
 // splitVolume splits a volume string by colons, handling Windows paths
 func splitVolume(volume string) []string {
-	// Simple split for Unix paths - could be enhanced for Windows support
-	return []string{volume} // Simplified for now
+	// Split by colon, but be careful with Windows paths like C:\path
+	parts := strings.Split(volume, ":")
+	
+	// Handle Windows drive letters (e.g., C:\path\to\dir:/container/path)
+	if len(parts) >= 3 && len(parts[0]) == 1 && 
+		strings.Contains("ABCDEFGHIJKLMNOPQRSTUVWXYZ", strings.ToUpper(parts[0])) {
+		// Rejoin the first two parts for Windows drive letter
+		parts[0] = parts[0] + ":" + parts[1]
+		parts = append(parts[:1], parts[2:]...)
+	}
+	
+	return parts
 }
 
 // GetServiceDependencyOrder returns services in dependency order

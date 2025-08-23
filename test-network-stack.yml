@@ -1,0 +1,28 @@
+version: "1.0"
+
+metadata:
+  name: "network-test-stack" 
+  description: "Test network connectivity in multi-container deployment"
+
+services:
+  # Network test service
+  network-test:
+    build:
+      context: "."
+      dockerfile: "LXCfile-network-test.yml"
+    hostname: "network-test-server"
+    
+    resources:
+      cores: 1
+      memory: 512
+
+# Global settings
+settings:
+  default_resources:
+    cores: 1
+    memory: 256
+  
+  proxmox:
+    node: "pveserver2"
+    storage: "sixteen_tb_hdds"
+    template_storage: "local"
